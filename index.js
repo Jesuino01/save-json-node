@@ -3,59 +3,61 @@ var app = express();
 var port = 4040;
 var fs = require('fs');
 
-
 app.use(express.static('public'));
 
 app.get('/users', function (req, res) {
 	var name = req.query.name;
 	var age = req.query.age;
-	var team = req.query.team;
 
 	var person = {
-		team,
 		name,
 		age,
 	};
 
-	saveUsers(person, function (err) {
+	saveUsers(person, res, function (err) {
 		if (err) {
-			res.status(404).send('User not saved');
-			return;
+			errorMsg('Erro inesperado, tente novamente mais tarde.')
 		}
 
-		res.send('User saved');
+		res.send(res, 'Usuário salvo com sucesso');
 	});
 });
+	
+function errorMsg(res, msg) {
+	res.status(404).send(msg);
+	return;
+}
 
-function saveUsers(person, callback) {
-	fs.readFile('./person.json', 'utf8', function readFileCallback(err, data){
-		var EJCTeams = {
-			team: []
+function saveUsers(person, res, callback) {
+	fs.readFile('person.json', 'utf8', function readFileCallback(err, data){
+		var save = true;
+		var obj = {
+			table: []
 		};
 
-		console.log(data)
+		obj = JSON.parse(data);
 
-		var json = JSON.stringify(EJCTeams);
+		obj.table.map(function(personTable){
+			if(personTable.name === person.name && personTable.age === person.age){
+				return save = false;
+			}
+		})
 
-		if (err){
-			console.log(err);
-    } else {
-
-			EJCTeams = JSON.parse(data);
-			
-
-			var person = {
-				id: 2,
-				square:3
+		if(save){
+			personSave = {
+				id: obj.table.length + 1,
+				name: person.name,
+				age: person.age,
 			}
 
-			EJCTeams.team.push(person);
+			obj.table.push(personSave);
 
-			json = JSON.stringify(EJCTeams);
-			
-			fs.writeFile('./person.json', json, 'utf8', callback);
-		
-	}});
+			json = JSON.stringify(obj);
+			fs.writeFile('person.json', json, 'utf8', callback); // write it back 
+		}else{
+			errorMsg(res, 'Erro ao salvar usuário');
+		}
+	});
 }
 
 app.listen(port, function () {
